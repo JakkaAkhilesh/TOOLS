@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Position Size — Gold / USOIL</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --bg:#0E1113;
+    --panel:#161A1E;
+    --panel-2:#1D2227;
+    --border:#2A3037;
+    --border-soft:#22272C;
+    --text:#E7EAED;
+    --text-dim:#8B95A0;
+    --text-faint:#5C666F;
+    --buy:#3ED598;
+    --buy-dim:#1D5C46;
+    --sell:#F0665A;
+    --sell-dim:#5C2A26;
+    --warn:#E8B34C;
+    --focus:#5CA8FF;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);}
+  body{
+    font-family:'Manrope',-apple-system,sans-serif;
+    padding:28px 16px 40px;
+    min-height:100vh;
+  }
+  .wrap{max-width:640px;margin:0 auto;}
+
+  .head{margin-bottom:22px;}
+  .head h1{
+    font-size:20px;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    margin:0 0 4px;
+  }
+  .head p{
+    margin:0;
+    font-size:13px;
+    color:var(--text-dim);
+    line-height:1.5;
+  }
+
+  .instrument-toggle{
+    display:flex;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:4px;
+    gap:4px;
+    margin-bottom:16px;
+  }
+  .instrument-toggle button{
+    flex:1;
+    padding:10px 12px;
+    border:none;
+    border-radius:7px;
+    background:transparent;
+    color:var(--text-dim);
+    font-family:'Manrope',sans-serif;
+    font-weight:700;
+    font-size:14px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .instrument-toggle button.active{
+    background:var(--border);
+    color:var(--text);
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border-soft);
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:14px;
+  }
+  .panel-title{
+    font-size:11px;
+    font-weight:700;
+    color:var(--text-faint);
+    letter-spacing:.04em;
+    margin:0 0 14px;
+  }
+
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{
+    display:block;
+    font-size:12.5px;
+    color:var(--text-dim);
+    margin-bottom:6px;
+    font-weight:500;
+  }
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+
+  input[type=number]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;
+    font-weight:500;
+    -moz-appearance:textfield;
+  }
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{
+    -webkit-appearance:none; margin:0;
+  }
+  input[type=number]:focus{
+    outline:none;
+    border-color:var(--focus);
+    box-shadow:0 0 0 3px rgba(92,168,255,.15);
+  }
+
+  .risk-presets{display:flex; gap:8px; margin-top:8px;}
+  .risk-presets button{
+    flex:1;
+    padding:7px 6px;
+    border-radius:7px;
+    border:1px solid var(--border);
+    background:var(--panel-2);
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    font-weight:500;
+    cursor:pointer;
+  }
+  .risk-presets button:hover{border-color:var(--focus); color:var(--text);}
+
+  .dir-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:5px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:14px;
+  }
+  .dir-badge.buy{background:rgba(62,213,152,.12); color:var(--buy);}
+  .dir-badge.sell{background:rgba(240,102,90,.12); color:var(--sell);}
+  .dir-badge .dot{width:6px; height:6px; border-radius:50%; background:currentColor;}
+
+  .result-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .result-card{
+    background:var(--panel-2);
+    border:1px solid var(--border-soft);
+    border-radius:10px;
+    padding:14px;
+  }
+  .result-card.wide{grid-column:1 / -1;}
+  .result-card .rlabel{
+    font-size:11.5px;
+    color:var(--text-faint);
+    margin-bottom:5px;
+    font-weight:500;
+  }
+  .result-card .rvalue{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:20px;
+    font-weight:600;
+    color:var(--text);
+    line-height:1.2;
+  }
+  .result-card .rvalue.hero{
+    font-size:26px;
+    font-weight:700;
+    color:var(--focus);
+  }
+  .result-card .rsub{
+    font-size:11.5px;
+    color:var(--text-dim);
+    margin-top:3px;
+  }
+
+  .warn-box{
+    background:rgba(232,179,76,.08);
+    border:1px solid rgba(232,179,76,.3);
+    color:var(--warn);
+    border-radius:10px;
+    padding:11px 14px;
+    font-size:12.5px;
+    line-height:1.5;
+    margin-top:12px;
+    display:none;
+  }
+  .warn-box.show{display:block;}
+
+  details{margin-top:4px;}
+  summary{
+    font-size:12px;
+    color:var(--text-dim);
+    cursor:pointer;
+    padding:6px 0;
+    user-select:none;
+  }
+  summary:hover{color:var(--text);}
+  .adv-body{padding-top:8px;}
+  .adv-note{
+    font-size:11.5px;
+    color:var(--text-faint);
+    line-height:1.5;
+    margin-top:8px;
+  }
+
+  .footer-note{
+    font-size:11.5px;
+    color:var(--text-faint);
+    line-height:1.6;
+    margin-top:18px;
+    padding-top:14px;
+    border-top:1px solid var(--border-soft);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1>Position Size Calculator</h1>
+    <p>Gold &amp; USOIL — sized for your Funded Friday MT5 account (XAUUSD.f / USOIL.f contract specs built in).</p>
+  </div>
+
+  <div class="instrument-toggle">
+    <button id="btn-gold" class="active">GOLD (XAUUSD)</button>
+    <button id="btn-oil">USOIL (WTI)</button>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">CHART LEVELS</p>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="entry">Entry price</label>
+        <input type="number" id="entry" step="0.01" placeholder="e.g. 3652.40">
+      </div>
+      <div class="field">
+        <label for="sl">Stop loss</label>
+        <input type="number" id="sl" step="0.01" placeholder="e.g. 3644.00">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="tp">Take profit <span style="color:var(--text-faint)">(optional, for R:R)</span></label>
+      <input type="number" id="tp" step="0.01" placeholder="e.g. 3667.60">
+    </div>
+
+    <div id="dirBadge" class="dir-badge buy" style="display:none;">
+      <span class="dot"></span><span id="dirText">BUY setup</span>
+    </div>
+
+    <p class="panel-title" style="margin-top:4px;">RISK PER TRADE</p>
+    <div class="field" style="margin-bottom:0;">
+      <label for="risk">Risk amount ($)</label>
+      <input type="number" id="risk" step="1" placeholder="e.g. 70" value="70">
+      <div class="risk-presets">
+        <button data-risk="30">$30</button>
+        <button data-risk="60">$60</button>
+        <button data-risk="75">$75</button>
+        <button data-risk="100">$100</button>
+      </div>
+    </div>
+
+    <details>
+      <summary>Advanced — contract size (verify against your broker)</summary>
+      <div class="adv-body">
+        <div class="field">
+          <label for="contract">Contract size (units per 1.00 lot)</label>
+          <input type="number" id="contract" step="1">
+        </div>
+        <p class="adv-note">
+          Verified for your Funded Friday MT5 account: XAUUSD.f = 100 (tick size 0.01, tick value $1),
+          USOIL.f = 1000 (tick size 0.001, tick value $1). If Funded Friday ever changes these specs,
+          recheck via MT5: right-click the symbol → Specification → "Contract size."
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">RESULT</p>
+    <div class="result-grid">
+      <div class="result-card wide">
+        <div class="rlabel">Position size</div>
+        <div class="rvalue hero" id="outLots">—</div>
+        <div class="rsub" id="outLotsSub">Enter entry, SL and risk to calculate</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">Stop distance</div>
+        <div class="rvalue" id="outStopDist">—</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">Risk-per-unit value</div>
+        <div class="rvalue" id="outUnitVal">—</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">Reward : Risk</div>
+        <div class="rvalue" id="outRR">—</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">Potential profit at TP</div>
+        <div class="rvalue" id="outProfit">—</div>
+      </div>
+    </div>
+    <div class="warn-box" id="warnBox"></div>
+  </div>
+
+  <div class="footer-note">
+    Lot size = Risk amount ÷ (Stop distance × Contract size), rounded down to the nearest 0.01 lot
+    so you never risk more than entered. This is a sizing tool, not trade advice — always confirm
+    the calculated lot size against your broker's minimum/maximum lot rules and current margin
+    before placing the order.
+  </div>
+
+</div>
+
+<script>
+  const state = {
+    instrument: 'gold',
+    contracts: { gold: 100, oil: 1000 }
+  };
+
+  const el = id => document.getElementById(id);
+  const fmt = (n, d=2) => Number(n).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+
+  function setInstrument(inst){
+    state.instrument = inst;
+    el('btn-gold').classList.toggle('active', inst==='gold');
+    el('btn-oil').classList.toggle('active', inst==='oil');
+    el('contract').value = state.contracts[inst];
+    el('entry').placeholder = inst==='gold' ? 'e.g. 3652.40' : 'e.g. 68.40';
+    el('sl').placeholder    = inst==='gold' ? 'e.g. 3644.00' : 'e.g. 67.60';
+    el('tp').placeholder    = inst==='gold' ? 'e.g. 3667.60' : 'e.g. 69.90';
+    calculate();
+  }
+
+  el('btn-gold').addEventListener('click', ()=>setInstrument('gold'));
+  el('btn-oil').addEventListener('click', ()=>setInstrument('oil'));
+
+  document.querySelectorAll('.risk-presets button').forEach(b=>{
+    b.addEventListener('click', ()=>{ el('risk').value = b.dataset.risk; calculate(); });
+  });
+
+  ['entry','sl','tp','risk','contract'].forEach(id=>{
+    el(id).addEventListener('input', calculate);
+  });
+
+  function calculate(){
+    const entry = parseFloat(el('entry').value);
+    const sl    = parseFloat(el('sl').value);
+    const tp    = parseFloat(el('tp').value);
+    const risk  = parseFloat(el('risk').value);
+    const contract = parseFloat(el('contract').value) || state.contracts[state.instrument];
+
+    const warnBox = el('warnBox');
+    warnBox.className = 'warn-box';
+    warnBox.textContent = '';
+
+    if (isNaN(entry) || isNaN(sl) || isNaN(risk) || risk <= 0 || entry === sl){
+      el('outLots').textContent = '—';
+      el('outLotsSub').textContent = 'Enter entry, SL and risk to calculate';
+      el('outStopDist').textContent = '—';
+      el('outUnitVal').textContent = '—';
+      el('outRR').textContent = '—';
+      el('outProfit').textContent = '—';
+      el('dirBadge').style.display = 'none';
+      return;
+    }
+
+    const stopDist = Math.abs(entry - sl);
+    const isBuy = sl < entry;
+
+    el('dirBadge').style.display = 'inline-flex';
+    el('dirBadge').className = 'dir-badge ' + (isBuy ? 'buy' : 'sell');
+    el('dirText').textContent = (isBuy ? 'BUY' : 'SELL') + ' setup';
+
+    // Value per 1.00 lot per full unit of price move
+    const valuePerLotPerUnit = contract;
+    const riskPerLot = stopDist * valuePerLotPerUnit;
+
+    let lots = risk / riskPerLot;
+    // add a tiny epsilon before flooring to counteract binary floating-point
+    // representation error (e.g. 0.08 sometimes computing as 0.0799999999999914)
+    lots = Math.floor(lots * 100 + 1e-6) / 100; // round down to nearest 0.01
+
+    el('outStopDist').textContent = fmt(stopDist, 2);
+    el('outUnitVal').textContent = '$' + fmt(valuePerLotPerUnit, 2) + ' /lot';
+
+    if (lots < 0.01){
+      el('outLots').textContent = '< 0.01';
+      el('outLotsSub').textContent = 'Stop is too wide for this risk amount at 0.01 lot minimum';
+      warnBox.textContent = 'Even the minimum 0.01 lot risks more than your entered amount at this stop distance. Widen your risk budget or find a tighter stop.';
+      warnBox.classList.add('show');
+    } else {
+      el('outLots').textContent = fmt(lots, 2) + ' lot' + (lots===1?'':'s');
+      const actualRisk = lots * riskPerLot;
+      el('outLotsSub').textContent = 'Actual risk at this size: $' + fmt(actualRisk, 2);
+
+      if (lots > 5){
+        warnBox.textContent = 'This is a large position for the risk entered — double-check your contract size and stop distance before placing it.';
+        warnBox.classList.add('show');
+      }
+    }
+
+    if (!isNaN(tp) && tp !== entry){
+      const rewardDist = Math.abs(tp - entry);
+      const rr = rewardDist / stopDist;
+      el('outRR').textContent = '1 : ' + fmt(rr, 2);
+      const profit = lots >= 0.01 ? lots * valuePerLotPerUnit * rewardDist : 0;
+      el('outProfit').textContent = lots >= 0.01 ? '$' + fmt(profit, 2) : '—';
+    } else {
+      el('outRR').textContent = '—';
+      el('outProfit').textContent = '—';
+    }
+  }
+
+  setInstrument('gold');
+</script>
+</body>
+</html>
