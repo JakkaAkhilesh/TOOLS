@@ -319,6 +319,37 @@
     <div class="warn-box" id="warnBox"></div>
   </div>
 
+  <div class="panel" id="offsetPanel" style="display:none;">
+    <p class="panel-title">MT5 EXECUTION — FEED OFFSET</p>
+    <p style="font-size:12.5px; color:var(--text-dim); line-height:1.5; margin:-4px 0 14px;">
+      TradingView and Funded Friday MT5 often show slightly different prices at the same moment.
+      Enter your actual MT5 fill price and this converts your TradingView SL/TP into the exact
+      levels to set on MT5 — your risk and R:R stay identical, only the price numbers shift.
+    </p>
+    <div class="field" style="margin-bottom:0;">
+      <label for="mt5entry">Your MT5 fill price</label>
+      <input type="number" id="mt5entry" step="0.001" placeholder="e.g. 3652.90">
+    </div>
+    <div class="result-grid" id="offsetResults" style="margin-top:14px; display:none;">
+      <div class="result-card">
+        <div class="rlabel">Feed offset</div>
+        <div class="rvalue" id="outOffset">—</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">Lot size (unchanged)</div>
+        <div class="rvalue" id="outOffsetLots">—</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">SL to set in MT5</div>
+        <div class="rvalue hero" id="outMt5SL">—</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">TP to set in MT5</div>
+        <div class="rvalue hero" id="outMt5TP">—</div>
+      </div>
+    </div>
+  </div>
+
   <div class="footer-note">
     Lot size = Risk amount ÷ (Stop distance × Contract size), rounded down to the nearest 0.01 lot
     so you never risk more than entered. This is a sizing tool, not trade advice — always confirm
@@ -357,6 +388,7 @@
 
   ['entry','sl','tp','risk','contract'].forEach(id=>{
     el(id).addEventListener('input', calculate);
+    el(id).addEventListener('input', refreshOffsetPanelVisibility);
   });
 
   function calculate(){
@@ -426,6 +458,47 @@
       el('outRR').textContent = '—';
       el('outProfit').textContent = '—';
     }
+  }
+
+  el('mt5entry').addEventListener('input', calculateOffset);
+
+  function calculateOffset(){
+    const tvEntry = parseFloat(el('entry').value);
+    const tvSl    = parseFloat(el('sl').value);
+    const tvTp    = parseFloat(el('tp').value);
+    const mt5Entry = parseFloat(el('mt5entry').value);
+    const offsetResults = el('offsetResults');
+
+    if (isNaN(tvEntry) || isNaN(tvSl) || isNaN(mt5Entry)){
+      offsetResults.style.display = 'none';
+      return;
+    }
+
+    const offset = mt5Entry - tvEntry;
+    const mt5Sl = tvSl + offset;
+    const sign = offset >= 0 ? '+' : '';
+
+    el('outOffset').textContent = sign + fmt(offset, 3);
+    el('outMt5SL').textContent = fmt(mt5Sl, 3);
+
+    // lot size is unaffected by a parallel feed offset — stop distance is identical
+    el('outOffsetLots').textContent = el('outLots').textContent;
+
+    if (!isNaN(tvTp)){
+      const mt5Tp = tvTp + offset;
+      el('outMt5TP').textContent = fmt(mt5Tp, 3);
+    } else {
+      el('outMt5TP').textContent = '— (add TV target above)';
+    }
+
+    offsetResults.style.display = 'grid';
+  }
+
+  function refreshOffsetPanelVisibility(){
+    const entry = parseFloat(el('entry').value);
+    const sl = parseFloat(el('sl').value);
+    el('offsetPanel').style.display = (!isNaN(entry) && !isNaN(sl)) ? 'block' : 'none';
+    calculateOffset();
   }
 
   setInstrument('gold');
